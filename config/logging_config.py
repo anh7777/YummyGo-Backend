@@ -1,12 +1,12 @@
 import logging
 from logging.config import dictConfig
 
-LOGGING_CONFIG = {
+LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s",
+            "format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
         },
     },
     "handlers": {
@@ -15,13 +15,17 @@ LOGGING_CONFIG = {
             "formatter": "default",
         },
     },
-    "root": {
-        "level": "INFO",
-        "handlers": ["console"],
+    "loggers": {
+        "uvicorn": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "root": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+        },
     },
 }
 
-def setup_logging():
-    dictConfig(LOGGING_CONFIG)
-
-# Gọi setup_logging() trong main.py nếu cần logging
+dictConfig(LOGGING)

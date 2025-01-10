@@ -2,7 +2,7 @@ from sqlalchemy import (
     Column, Integer, String, ForeignKey, Boolean, Text, DECIMAL, Enum, Time, DateTime
 )
 from geoalchemy2 import Geometry # pip install GeoAlchemy2
-from utils.database import Base
+from db.database import Base
 from sqlalchemy.orm import relationship
 import enum
 

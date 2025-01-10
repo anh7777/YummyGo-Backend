@@ -1,14 +1,12 @@
-from pydantic import BaseSettings
+from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
+
+# Tải các biến môi trường từ file .env
+load_dotenv()
 
 class Settings(BaseSettings):
-    app_name: str = "YummyGo"
+    database_url: str
+    secret_key: str
     debug: bool = True
-    database_url: str = "postgresql://username:password@localhost:5432/yummygo_db"
-    secret_key: str = "your_secret_key"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
 
-    class Config:
-        env_file = ".env"  # Đọc từ file .env
-
-settings = Settings()
+settings = Settings()  # Không cần env_file trong Config nữa

@@ -1,27 +1,44 @@
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from models.user_model import User
-from passlib.context import CryptContext
+from typing import List
+from db.database import get_db
+from services import user_service
+from models import schemas
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+router = APIRouter(prefix="/users", tags=["Users"])
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+@router.post("/", response_model=schemas.User)
+async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    try:
+        db_user = user_service.create_user_service(user, db)
+        return db_user
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-def register_user(db: Session, user_data):
-    # Kiểm tra email đã tồn tại
-    if db.query(User).filter(User.email == user_data['email']).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
+@router.get("/{user_id}", response_model=schemas.User)
+async def get_user(user_id: int, db: Session = Depends(get_db)):
+    try:
+        db_user = user_service.get_user_service(user_id, db)
+        return db_user
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-    # Hash password và lưu người dùng mới
-    hashed_password = get_password_hash(user_data['password'])
-    new_user = User(
-        user_name=user_data['user_name'],
-        password=hashed_password,
-        phone=user_data['phone'],
-        email=user_data['email']
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+@router.get("/", response_model=List[schemas.User])
+async def list_users(db: Session = Depends(get_db)):
+    return user_service.list_users_service(db)
+
+@router.put("/{user_id}", response_model=schemas.User)
+async def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
+    try:
+        db_user = user_service.update_user_service(user_id, user, db)
+        return db_user
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.delete("/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    try:
+        message = user_service.delete_user_service(user_id, db)
+        return {"detail": message}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))

@@ -1,19 +1,14 @@
-# Kết nối PostgreSQL
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
+from config.settings import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:12345@localhost/yummygo")
+DATABASE_URL = settings.database_url
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Khởi tạo base model để tất cả các bảng kế thừa từ đây
 Base = declarative_base()
 
-# Dependency để sử dụng trong controllers
 def get_db():
     db = SessionLocal()
     try:
