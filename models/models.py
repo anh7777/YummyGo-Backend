@@ -1,32 +1,39 @@
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Boolean, Text, DECIMAL, Enum, Time, DateTime
 )
-from geoalchemy2 import Geometry # pip install GeoAlchemy2
+from geoalchemy2 import Geometry 
 from db.database import Base
 from sqlalchemy.orm import relationship
-import enum
+# from object_enums import *
+
+from enum import Enum as PyEnum
 
 # -------------------------
 # Định nghĩa các ENUM
 # -------------------------
 
+class RoleEnum(str, PyEnum):
+    customer = "customer"
+    driver = "driver"
+    restaurant = "restaurant"
+    
 # Trạng thái của tài xế
-class DriverStatusEnum(str, enum.Enum):
+class DriverStatusEnum(str, PyEnum):
     active = "active"
     inactive = "inactive"
 
 # Trạng thái của nhà hàng
-class RestaurantStatusEnum(str, enum.Enum):
+class RestaurantStatusEnum(str, PyEnum):
     active = "active"
     inactive = "inactive"
 
 # Trạng thái của món ăn
-class ItemStatusEnum(str, enum.Enum):
+class ItemStatusEnum(str, PyEnum):
     available = "available"
     unavailable = "unavailable"
 
 # Các ngày trong tuần
-class DayEnum(str, enum.Enum):
+class DayEnum(str, PyEnum):
     Monday = "Monday"
     Tuesday = "Tuesday"
     Wednesday = "Wednesday"
@@ -36,7 +43,7 @@ class DayEnum(str, enum.Enum):
     Sunday = "Sunday"
 
 # Trạng thái của đơn hàng
-class OrderStatusEnum(str, enum.Enum):
+class OrderStatusEnum(str, PyEnum):
     cart = "cart"
     pending = "pending"
     preparing = "preparing"
@@ -46,10 +53,10 @@ class OrderStatusEnum(str, enum.Enum):
     cancelled = "cancelled"
 
 # Các danh mục nhà hàng
-class CategoryEnum(str, enum.Enum):
+class CategoryEnum(str, PyEnum):
     bun_pho_chao = "Bún - Phở - Cháo"
     banh_mi_xoi = "Bánh Mì - Xôi"
-    ga_ran_burger = "Gà rán - Burger"
+    ga_ran_burger = 'Gà rán - Burger'
     com = "Cơm"
     hai_san = "Hải sản"
     do_chay = "Đồ chay"
@@ -60,7 +67,7 @@ class CategoryEnum(str, enum.Enum):
     pizza_my_y = "Pizza - Mì Ý"
     banh_viet_nam = "Bánh Việt Nam"
     lau_nuong = "Lẩu - Nướng"
-
+    
 # -------------------------
 # Định nghĩa các bảng
 # -------------------------
@@ -75,33 +82,26 @@ class User(Base):
     email = Column(String, unique=True)                             # Email (duy nhất)
     is_deleted = Column(Boolean, default=False)                     # Đánh dấu người dùng đã bị xóa
 
-# Bảng Merchant - Lưu thông tin đối tác
-class Merchant(Base):
-    __tablename__ = 'merchants'
-    merchant_id = Column(Integer, primary_key=True)
-    name = Column(Text, nullable=False)
-    is_deleted = Column(Boolean, default=False)
-
 # Bảng Restaurant - Lưu thông tin nhà hàng
 class Restaurant(Base):
     __tablename__ = 'restaurants'
-    restaurant_id = Column(Integer, primary_key=True, autoincrement=True)
-    merchant_id = Column(Integer, ForeignKey('merchants.merchant_id'), nullable=False)  # Liên kết với Merchant
+    restaurant_id = Column(Integer, primary_key=True)
     name = Column(Text, nullable=False)
-    category = Column(Enum(CategoryEnum))  # Danh mục nhà hàng
-    phone = Column(String, unique=True)
+    # category = Column(Enum(CategoryEnum), nullable=False)  
+    category = Column(
+        Enum(CategoryEnum, 
+             native_enum=False,  # Không lưu theo tên enum
+             values_callable=lambda x: [e.value for e in x]),  # Lấy giá trị thay vì tên
+        nullable=False
+    )
     address = Column(Text, nullable=False)
-    coord = Column(Geometry('POINT'), nullable=False)  # Tọa độ địa lý của nhà hàng
+    x = Column(DECIMAL(10,7))
+    y = Column(DECIMAL(10,7))    
     status = Column(Enum(RestaurantStatusEnum), default=RestaurantStatusEnum.inactive)  # Trạng thái
     is_deleted = Column(Boolean, default=False)
 
-    # Thiết lập quan hệ
-    merchant = relationship("Merchant", back_populates="restaurants")
     menu_items = relationship("MenuItem", back_populates="restaurant")
     times = relationship("RestaurantTime", back_populates="restaurant")
-
-# Quan hệ giữa Merchant và Restaurant
-Merchant.restaurants = relationship("Restaurant", back_populates="merchant")
 
 # Bảng lưu giờ hoạt động của nhà hàng
 class RestaurantTime(Base):
@@ -122,7 +122,12 @@ class MenuItem(Base):
     img_url = Column(Text)  # URL hình ảnh món ăn
     description = Column(Text)  # Mô tả món ăn
     price = Column(DECIMAL(10, 2), nullable=False)
-    status = Column(Enum(ItemStatusEnum), default=ItemStatusEnum.unavailable)  # Trạng thái món ăn
+    status = Column(
+        Enum(
+            ItemStatusEnum, 
+             native_enum=False,  # Không lưu theo tên enum
+             values_callable=lambda x: [e.value for e in x]), 
+        default=ItemStatusEnum.unavailable)  # Trạng thái món ăn
     is_deleted = Column(Boolean, default=False)
 
     restaurant = relationship("Restaurant", back_populates="menu_items")
@@ -155,14 +160,15 @@ class Order(Base):
     customer_id = Column(Integer, ForeignKey('customers.customer_id'), nullable=False)
     restaurant_id = Column(Integer, ForeignKey('restaurants.restaurant_id'), nullable=False)
     driver_id = Column(Integer, ForeignKey('drivers.driver_id'))
-    address = Column(Text)
-    coord = Column(Geometry('POINT'))
+    address = Column(Text)  
     delivery_fee = Column(DECIMAL(10, 2))
     food_fee = Column(DECIMAL(10, 2))
     order_status = Column(Enum(OrderStatusEnum), default=OrderStatusEnum.cart)
     created_at = Column(DateTime)
     delivered_at = Column(DateTime)
     note = Column(Text)
+    x = Column(DECIMAL(10,7))
+    y = Column(DECIMAL(10,7))  
 
     # Quan hệ với Customer, Restaurant, và Driver
     customer = relationship("Customer", back_populates="orders")
@@ -188,3 +194,55 @@ class Manager(Base):
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     name = Column(Text, nullable=False)
+
+
+# Bang Customer - Driver Chats - Luu thong tin cuoc tro chuyen
+class CusDriChats(Base):
+    __tablename__ = 'cus_dri_chats'
+    chat_id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(Integer, ForeignKey('customers.customer_id'), nullable=False)
+    driver_id = Column(Integer, ForeignKey('drivers.driver_id'), nullable=False)
+    created_at = Column(DateTime)
+    
+# Bang Customer - Driver Messages - Luu thong tin tin nhan
+class CusDriMessages(Base):
+    __tablename__ = 'cus_dri_messages'
+    message_id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_id = Column(Integer, ForeignKey('cus_dri_chats.chat_id'), nullable=False)
+    sender_id = Column(Integer)
+    message = Column(Text)
+    created_at = Column(DateTime)
+    
+# Bang Customer - Restaurant Chats - Luu thong tin cuoc tro chuyen
+class CusResChats(Base):
+    __tablename__ = 'cus_res_chats'
+    chat_id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(Integer, ForeignKey('customers.customer_id'), nullable=False)
+    restaurant_id = Column(Integer, ForeignKey('restaurants.restaurant_id'), nullable=False)
+    created_at = Column(DateTime)
+    
+# Bang Customer - Restaurant Messages - Luu thong tin tin nhan
+class CusResMessages(Base):
+    __tablename__ = 'cus_res_messages'
+    message_id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_id = Column(Integer, ForeignKey('cus_res_chats.chat_id'), nullable=False)
+    sender_id = Column(Integer)
+    message = Column(Text)
+    created_at = Column(DateTime)
+    
+# Restaurant - Driver Chats - Luu thong tin cuoc tro chuyen
+class ResDriChats(Base):
+    __tablename__ = 'res_dri_chats'
+    chat_id = Column(Integer, primary_key=True, autoincrement=True)
+    restaurant_id = Column(Integer, ForeignKey('restaurants.restaurant_id'), nullable=False)
+    driver_id = Column(Integer, ForeignKey('drivers.driver_id'), nullable=False)
+    created_at = Column(DateTime)
+    
+# Restaurant - Driver Messages - Luu thong tin tin nhan
+class ResDriMessages(Base):
+    __tablename__ = 'res_dri_messages'
+    message_id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_id = Column(Integer, ForeignKey('res_dri_chats.chat_id'), nullable=False)
+    sender_id = Column(Integer)
+    message = Column(Text)
+    created_at = Column(DateTime)

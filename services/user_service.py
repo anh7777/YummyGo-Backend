@@ -1,58 +1,59 @@
 from sqlalchemy.orm import Session
-from models import models
-from models import schemas
+from models.models import *
+from models.schemas import *
+from fastapi import HTTPException, status
 
-def create_user_service(user: schemas.UserCreate, db: Session) -> models.User:
-    db_user = db.query(models.User).filter(models.User.user_name == user.user_name).first()
-    if db_user:
-        raise Exception("Username already exists")
-    
-    # Hash the password before saving (add actual hashing logic here)
-    hashed_password = user.password
-
-    db_user = models.User(
-        user_name=user.user_name,
-        password=hashed_password,
-        phone=user.phone,
-        email=user.email
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-def get_user_service(user_id: int, db: Session) -> models.User:
-    db_user = db.query(models.User).filter(models.User.user_id == user_id).first()
+def get_user(user_id: int, db: Session) -> User:
+    db_user = db.query(User).filter(User.user_id == user_id).first()
     if db_user is None:
         raise Exception("User not found")
     return db_user
 
-def list_users_service(db: Session) -> list:
-    return db.query(models.User).filter(models.User.is_deleted == False).all()
 
-def update_user_service(user_id: int, user: schemas.UserUpdate, db: Session) -> models.User:
-    db_user = db.query(models.User).filter(models.User.user_id == user_id).first()
+
+def update_user(user: UserUpdate, user_id: int, db: Session) -> User:
+    db_user = db.query(User).filter(User.user_id == user_id).first()
     if db_user is None:
         raise Exception("User not found")
     
-    if user.user_name:
-        db_user.user_name = user.user_name
-    if user.password:
-        db_user.password = user.password
-    if user.phone:
-        db_user.phone = user.phone
-    if user.email:
-        db_user.email = user.email
+    for key, value in user.model_dump(exclude_unset=True).items():
+        if value is not None:
+            if isinstance(value, str):
+                if value == "":
+                    continue
+            setattr(db_user, key, value)    
     
     db.commit()
     db.refresh(db_user)
     return db_user
 
-def delete_user_service(user_id: int, db: Session) -> str:
-    db_user = db.query(models.User).filter(models.User.user_id == user_id).first()
-    if db_user is None:
-        raise Exception("User not found")
+def delete_user(user_id: int, db: Session) -> str:
+    # Truy vấn các bản ghi trong bảng User, Customer, Driver, Merchant, Restaurant và Manager
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    db_customer = db.query(Customer).filter(Customer.customer_id == user_id).first()
+    db_driver = db.query(Driver).filter(Driver.driver_id == user_id).first()
+    db_restaurant = db.query(Restaurant).filter(Restaurant.restaurant_id == user_id)
+    restaurant_ids = [restaurant.restaurant_id for restaurant in db_restaurant.all()]
+    db_manager = db.query(Manager).filter(Manager.restaurant_id.in_(restaurant_ids)).all()
+
+
+    # Cập nhật trạng thái 'is_deleted' của các bản ghi nếu tồn tại
+    if db_user is not None:
+        db_user.is_deleted = True
+    if db_customer is not None:
+        db_customer.is_deleted = True
+    if db_driver is not None:
+        db_driver.is_deleted = True
+    if db_restaurant is not None:
+        db_restaurant.update({Restaurant.is_deleted: True})
+        # Xóa tất cả các manager liên quan
+        for manager in db_manager:
+            db.delete(manager)
     
-    db_user.is_deleted = True
+    # Commit thay đổi vào cơ sở dữ liệu
     db.commit()
-    return "Xóa người dùng thành công"
+
+    return "User and related records have been deleted."
+
+# def list_users(db: Session) -> list:
+#     return db.query(User).filter(User.is_deleted == False).all()

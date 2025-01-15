@@ -7,7 +7,7 @@ from services.admin_service import create_admin, get_admin
 router = APIRouter(prefix="/admins", tags=["Admins"])
 
 # Route POST: Tạo mới Admin
-@router.post("/", response_model=schemas.Admin)
+@router.post("/")
 async def create_admin_route(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
     """
     API để tạo một admin mới.
@@ -15,7 +15,7 @@ async def create_admin_route(admin: schemas.AdminCreate, db: Session = Depends(g
     return create_admin(admin, db)
 
 # Route GET: Lấy thông tin Admin theo admin_id
-@router.get("/{admin_id}", response_model=schemas.Admin)
+@router.get("/{admin_id}")
 async def get_admin_route(admin_id: int, db: Session = Depends(get_db)):
     """
     API để lấy thông tin admin dựa trên admin_id.

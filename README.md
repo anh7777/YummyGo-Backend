@@ -113,3 +113,10 @@ uvicorn main:app --reload
 - `POST /drivers/`: Thêm tài xế mới.
 
 
+### Test api websocken trên WebSocket King Client
+WebSocket King Client là một công cụ rất hữu ích để kiểm tra và gửi tin nhắn qua WebSocket.
+
+Trên Chrome: Bạn có thể cài đặt WebSocket King Client dưới dạng Chrome Extension.
+Mở WebSocket King Client trên Chrome Web Store.
+Nhấn Add to Chrome để cài đặt.
+Trên máy tính: Bạn cũng có thể tải WebSocket King Client phiên bản desktop tại trang tải WebSocket King.

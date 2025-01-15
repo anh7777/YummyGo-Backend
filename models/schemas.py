@@ -3,58 +3,54 @@ from typing import Optional
 from enum import Enum
 from decimal import Decimal
 from datetime import datetime, time
+# from object_enums import *
 
+from enum import Enum
+# -------------------------
+# Định nghĩa các ENUM
+# -------------------------
 
-# ------------------------------
-# Mô hình User (Người dùng)
-# ------------------------------
+class RoleEnum(str, Enum):
+    customer = "customer"
+    driver = "driver"
+    restaurant = "restaurant"
+    
+# Trạng thái của tài xế
+class DriverStatusEnum(str, Enum):
+    active = "active"
+    inactive = "inactive"
 
-class UserBase(BaseModel):
-    user_name: str  # Tên người dùng
-    phone: Optional[str] = None  # Số điện thoại, có thể rỗng
-    email: Optional[EmailStr] = None  # Email, có thể rỗng
+# Trạng thái của nhà hàng
+class RestaurantStatusEnum(str, Enum):
+    active = "active"
+    inactive = "inactive"
 
-    class Config:
-        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+# Trạng thái của món ăn
+class ItemStatusEnum(str, Enum):
+    available = "available"
+    unavailable = "unavailable"
 
-class UserCreate(UserBase):
-    password: str  # Mật khẩu khi tạo người dùng mới
+# Các ngày trong tuần
+class DayEnum(str, Enum):
+    Monday = "Monday"
+    Tuesday = "Tuesday"
+    Wednesday = "Wednesday"
+    Thursday = "Thursday"
+    Friday = "Friday"
+    Saturday = "Saturday"
+    Sunday = "Sunday"
 
-class User(UserBase):
-    user_id: int  # ID người dùng
-    is_deleted: bool  # Trạng thái xóa người dùng (True nếu đã xóa)
+# Trạng thái của đơn hàng
+class OrderStatusEnum(str, Enum):
+    cart = "cart"
+    pending = "pending"
+    preparing = "preparing"
+    delivering = "delivering"
+    delivered = "delivered"
+    completed = "completed"
+    cancelled = "cancelled"
 
-class UserUpdate(UserBase):
-    password: Optional[str] = None  # Mật khẩu có thể thay đổi khi cập nhật
-    phone: Optional[str] = None  # Số điện thoại có thể thay đổi
-    email: Optional[EmailStr] = None  # Email có thể thay đổi
-
-
-# ------------------------------
-# Mô hình Merchant (Nhà cung cấp)
-# ------------------------------
-
-class MerchantBase(BaseModel):
-    name: str  # Tên nhà cung cấp
-
-class MerchantCreate(MerchantBase):
-    pass  # Khi tạo mới, không cần thêm thuộc tính gì ngoài tên
-
-class Merchant(MerchantBase):
-    merchant_id: int  # ID nhà cung cấp
-    is_deleted: bool = False  # Trạng thái xóa nhà cung cấp, mặc định là False
-
-    class Config:
-        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
-
-class MerchantUpdate(MerchantBase):
-    name: Optional[str] = None  # Tên nhà cung cấp có thể thay đổi
-
-
-# ------------------------------
-# Mô hình Restaurant (Nhà hàng)
-# ------------------------------
-
+# Các danh mục nhà hàng
 class CategoryEnum(str, Enum):
     bun_pho_chao = "Bún - Phở - Cháo"
     banh_mi_xoi = "Bánh Mì - Xôi"
@@ -69,7 +65,56 @@ class CategoryEnum(str, Enum):
     pizza_my_y = "Pizza - Mì Ý"
     banh_viet_nam = "Bánh Việt Nam"
     lau_nuong = "Lẩu - Nướng"
+    @classmethod
+    def _missing_(cls, value):
+        """Nếu không tìm thấy giá trị trong Enum, trả về giá trị None hoặc xử lý theo cách của bạn."""
+        for item in cls:
+            if item.value == value:
+                return item
+        return None
+    
 
+# Mô hình dữ liệu thông báo
+class Notification(BaseModel):
+    sender: str
+    message: str
+    timestamp: datetime
+# ------------------------------
+# Mô hình User (Người dùng)
+# ------------------------------
+    
+class UserBase(BaseModel):
+    user_name: str  # Tên người dùng
+    phone: Optional[str] = None  # Số điện thoại, có thể rỗng
+    email: Optional[str] = None  # Email, có thể rỗng
+
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+
+class UserCreate(UserBase):
+    password: str  # Mật khẩu khi tạo người dùng mới
+
+class UserSchema(UserBase):
+    user_id: int  # ID người dùng
+    is_deleted: bool  # Trạng thái xóa người dùng (True nếu đã xóa)
+
+class UserUpdate(BaseModel):
+    password: Optional[str] = None  # Mật khẩu có thể thay đổi khi cập nhật
+    phone: Optional[str] = None  # Số điện thoại có thể thay đổi
+    email: Optional[EmailStr] = None  # Email có thể thay đổi
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+    
+class UserLogin(BaseModel):
+    user_name: str
+    password: str
+    role: str
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+
+# ------------------------------
+# Mô hình Restaurant (Nhà hàng)
+# ------------------------------
 class RestaurantStatusEnum(str, Enum):
     active = "active"  # Nhà hàng hoạt động
     inactive = "inactive"  # Nhà hàng không hoạt động
@@ -77,30 +122,37 @@ class RestaurantStatusEnum(str, Enum):
 
 class RestaurantBase(BaseModel):
     name: str  # Tên nhà hàng
-    category: CategoryEnum  # Loại nhà hàng
-    phone: Optional[str] = None  # Số điện thoại, có thể rỗng
+    category: str  # Loại nhà hàng
     address: str  # Địa chỉ nhà hàng
-    coord: str  # Tọa độ nhà hàng, có thể thay bằng kiểu POINT trong PostgreSQL
-    status: Optional[RestaurantStatusEnum] = RestaurantStatusEnum.inactive  # Trạng thái nhà hàng
+    x: Optional[Decimal]
+    y: Optional[Decimal]
+    status: Optional[str] = RestaurantStatusEnum.inactive  # Trạng thái nhà hàng
 
     class Config:
         from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
 
-class RestaurantCreate(RestaurantBase):
-    pass  # Khi tạo mới nhà hàng
+class RestaurantCreate(BaseModel):
+    name: str  # Tên nhà hàng
+    category: str  # Loại nhà hàng
+    address: str  # Địa chỉ nhà hàng
+    
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
 
-class RestaurantUpdate(RestaurantBase):
+class RestaurantUpdate(BaseModel):
     # Các thuộc tính có thể thay đổi khi cập nhật nhà hàng
     name: Optional[str] = None
-    category: Optional[CategoryEnum] = None
-    phone: Optional[str] = None
+    category: Optional[str] = None
     address: Optional[str] = None
-    coord: Optional[str] = None
-    status: Optional[RestaurantStatusEnum] = None
-
-class Restaurant(RestaurantBase):
+    x: Optional[Decimal] = None
+    y: Optional[Decimal] = None
+    
+    class Config:
+        from_attributes = True
+    
+class RestaurantSchema(RestaurantBase):
     restaurant_id: int  # ID nhà hàng
-    merchant_id: int  # ID nhà cung cấp
+
 
     class Config:
         from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
@@ -109,16 +161,6 @@ class Restaurant(RestaurantBase):
 # ------------------------------
 # Mô hình Thời gian hoạt động của nhà hàng
 # ------------------------------
-
-class DayEnum(str, Enum):
-    MONDAY = "Monday"
-    TUESDAY = "Tuesday"
-    WEDNESDAY = "Wednesday"
-    THURSDAY = "Thursday"
-    FRIDAY = "Friday"
-    SATURDAY = "Saturday"
-    SUNDAY = "Sunday"
-
 class RestaurantTimeBase(BaseModel):
     day: DayEnum  # Ngày trong tuần
     open_time: time  # Giờ mở cửa
@@ -141,40 +183,41 @@ class RestaurantTimeResponse(RestaurantTimeBase):
 # Mô hình Menu Item (Món ăn trong menu)
 # ------------------------------
 
-from models.models import ItemStatusEnum
 
 class MenuItemBase(BaseModel):
     name: str  # Tên món ăn
     img_url: Optional[str] = None  # URL ảnh món ăn, có thể rỗng
     description: Optional[str] = None  # Mô tả món ăn, có thể rỗng
     price: Decimal  # Giá món ăn
-    status: Optional[ItemStatusEnum] = ItemStatusEnum.unavailable  # Trạng thái món ăn (có sẵn hay không)
+    status: Optional[str] = ItemStatusEnum.unavailable  # Trạng thái món ăn (có sẵn hay không)
     is_deleted: Optional[bool] = False  # Trạng thái xóa món ăn, mặc định là False
 
     class Config:
         from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
 
 class MenuItemCreate(MenuItemBase):
-    restaurant_id: int  # ID nhà hàng chứa món ăn
+    pass
+class MenuItemUpdate(BaseModel):
+    name: Optional[str] = None# Tên món ăn
+    img_url: Optional[str] = None  # URL ảnh món ăn, có thể rỗng
+    description: Optional[str] = None # Mô tả món ăn, có thể rỗng
+    price: Optional[Decimal] = None # Giá món ăn
 
-class MenuItemUpdate(MenuItemBase):
-    pass  # Cập nhật món ăn
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
 
-class MenuItem(MenuItemBase):
+class MenuItemShchema(MenuItemBase):
     item_id: int  # ID món ăn
+
 
 
 # ------------------------------
 # Mô hình Driver (Tài xế giao hàng)
 # ------------------------------
 
-class DriverStatusEnum(str, Enum):
-    active = "active"  # Tài xế hoạt động
-    inactive = "inactive"  # Tài xế không hoạt động
-
 class DriverBase(BaseModel):
     name: str  # Tên tài xế
-    status: DriverStatusEnum = DriverStatusEnum.inactive  # Trạng thái tài xế, mặc định là không hoạt động
+    status: str = DriverStatusEnum.inactive  # Trạng thái tài xế, mặc định là không hoạt động
 
     class Config:
         from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
@@ -182,11 +225,18 @@ class DriverBase(BaseModel):
 class DriverCreate(DriverBase):
     pass  # Tạo mới tài xế
 
-class Driver(DriverBase):
+class DriverUpdate(BaseModel):
+    name: Optional[str] = None
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+ 
+class DriverSchema(DriverBase):
     driver_id: int  # ID tài xế
     is_deleted: bool = False  # Trạng thái xóa tài xế
 
-
+class DriverResponse(BaseModel):
+    driver_id: int
+    message: str
 # ------------------------------
 # Mô hình Admin (Quản trị viên)
 # ------------------------------
@@ -200,7 +250,7 @@ class AdminBase(BaseModel):
 class AdminCreate(AdminBase):
     pass  # Tạo mới quản trị viên
 
-class Admin(AdminBase):
+class AdminSchema(AdminBase):
     admin_id: int  # ID quản trị viên
 
 
@@ -218,56 +268,59 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     pass  # Tạo mới khách hàng
 
-class Customer(CustomerBase):
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None 
+    class Config:
+        from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
+
+
+class CustomerSchema(CustomerBase):
     customer_id: int  # ID khách hàng
 
 
 # ------------------------------
 # Mô hình Order (Đơn hàng)
-# ------------------------------
-
-class OrderStatusEnum(str, Enum):
-    cart = "cart"  # Đơn hàng trong giỏ
-    pending = "pending"  # Đơn hàng đang chờ xử lý
-    preparing = "preparing"  # Đơn hàng đang chuẩn bị
-    delivering = "delivering"  # Đơn hàng đang giao
-    delivered = "delivered"  # Đơn hàng đã giao
-    completed = "completed"  # Đơn hàng đã hoàn thành
-    cancelled = "cancelled"  # Đơn hàng đã hủy
+# ------------------------------\
 
 class OrderBase(BaseModel):
     customer_id: int  # ID khách hàng
     restaurant_id: int  # ID nhà hàng
     driver_id: Optional[int] = None  # ID tài xế, có thể rỗng
     address: Optional[str] = None  # Địa chỉ giao hàng, có thể rỗng
-    coord: Optional[str] = None  # Tọa độ giao hàng
-    delivery_fee: Optional[float] = None  # Phí giao hàng
+    x: Optional[float] = None  # Tọa độ giao hàng
+    y: Optional[float] = None
+    distance: Optional[float] = None  # Phí giao hàng
     food_fee: Optional[float] = None  # Phí món ăn
-    order_status: OrderStatusEnum = OrderStatusEnum.cart  # Trạng thái đơn hàng
+    delivery_fee: Optional[float] = None
+    order_status: str = OrderStatusEnum.cart  # Trạng thái đơn hàng
     note: Optional[str] = None  # Ghi chú
 
 class OrderCreate(OrderBase):
     pass  # Tạo đơn hàng mới
 
-class OrderUpdate(OrderBase):
-    order_status: OrderStatusEnum  # Cập nhật trạng thái đơn hàng
-
-class Order(OrderBase):
+class OrderSchema(OrderBase):
     order_id: int  # ID đơn hàng
     created_at: datetime  # Thời gian tạo đơn hàng
     delivered_at: Optional[datetime] = None  # Thời gian giao đơn hàng
 
     class Config:
         from_attributes = True  # Chuyển đổi từ SQLAlchemy models sang Pydantic models
-
-
+        
+class OrderUpdate(BaseModel):
+    address: Optional[str] = None  # Địa chỉ giao hàng, có thể rỗng
+    x: Optional[float] = None  # Tọa độ giao hàng
+    y: Optional[float] = None
+    note: Optional[str] = None  # Ghi chú
+    
+    class Config:
+        from_attribute = True
+    
 # ------------------------------
 # Mô hình Order Item (Món trong đơn hàng)
 # ------------------------------
 
 class OrderItemBase(BaseModel):
     item_id: int  # ID món ăn
-    order_id: int  # ID đơn hàng
     price: float  # Giá món ăn
     quantity: int = 1  # Số lượng món ăn, mặc định là 1
 
@@ -277,8 +330,8 @@ class OrderItemBase(BaseModel):
 class OrderItemCreate(OrderItemBase):
     pass  # Tạo món ăn trong đơn hàng
 
-class OrderItem(OrderItemBase):
-    pass  # Món ăn trong đơn hàng
+class OrderItemSchema(OrderItemBase):
+    order_id: int  # ID đơn hàng
 
 
 # ------------------------------
@@ -296,5 +349,6 @@ class ManagerBase(BaseModel):
 class ManagerCreate(ManagerBase):
     password: str  # Mật khẩu khi tạo quản lý mới
 
-class Manager(ManagerBase):
+class ManagerSchema(ManagerBase):
     manager_id: int  # ID quản lý
+

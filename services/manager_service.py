@@ -1,17 +1,17 @@
 from sqlalchemy.orm import Session
-from models import models, schemas
+from models.models import *
+from models.schemas import *
 from fastapi import HTTPException
 
-
-def create_manager_service(manager: schemas.ManagerCreate, db: Session):
+def create_manager_service(manager: ManagerCreate, db: Session):
     """Tạo mới một Manager."""
     # Kiểm tra nếu username đã tồn tại
-    db_manager = db.query(models.Manager).filter(models.Manager.username == manager.username).first()
+    db_manager = db.query(Manager).filter(Manager.username == manager.username).first()
     if db_manager:
         raise HTTPException(status_code=400, detail="Username đã tồn tại")
     
     # Tạo manager mới
-    new_manager = models.Manager(
+    new_manager = Manager(
         username=manager.username,
         password=manager.password,  # Mã hóa mật khẩu nếu cần
         name=manager.name,
@@ -25,15 +25,15 @@ def create_manager_service(manager: schemas.ManagerCreate, db: Session):
 
 def get_manager_service(manager_id: int, db: Session):
     """Lấy thông tin Manager dựa trên ID."""
-    db_manager = db.query(models.Manager).filter(models.Manager.manager_id == manager_id).first()
+    db_manager = db.query(Manager).filter(Manager.manager_id == manager_id).first()
     if not db_manager:
         raise HTTPException(status_code=404, detail="Manager không tồn tại")
     return db_manager
 
 
-def update_manager_service(manager_id: int, manager: schemas.ManagerCreate, db: Session):
+def update_manager_service(manager_id: int, manager: ManagerCreate, db: Session):
     """Cập nhật thông tin của Manager."""
-    db_manager = db.query(models.Manager).filter(models.Manager.manager_id == manager_id).first()
+    db_manager = db.query(Manager).filter(Manager.manager_id == manager_id).first()
     if not db_manager:
         raise HTTPException(status_code=404, detail="Manager không tồn tại")
     
@@ -50,7 +50,7 @@ def update_manager_service(manager_id: int, manager: schemas.ManagerCreate, db: 
 
 def delete_manager_service(manager_id: int, db: Session):
     """Xóa Manager dựa trên ID."""
-    db_manager = db.query(models.Manager).filter(models.Manager.manager_id == manager_id).first()
+    db_manager = db.query(Manager).filter(Manager.manager_id == manager_id).first()
     if not db_manager:
         raise HTTPException(status_code=404, detail="Manager không tồn tại")
     

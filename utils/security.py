@@ -1,11 +1,11 @@
-from passlib.context import CryptContext
+import bcrypt
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def hash_password(password: str):
+    # Tạo salt và băm mật khẩu
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password
 
-# Mã hóa mật khẩu với bcrypt
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-# Kiểm tra mật khẩu
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(password: str, hashed_password: str):
+    # Kiểm tra mật khẩu với giá trị băm đã lưu
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))

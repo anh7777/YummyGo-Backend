@@ -12,17 +12,17 @@ from services.manager_service import (
 router = APIRouter(prefix="/divers", tags=["Drivers"])
 
 # Route POST để tạo mới Manager
-@router.post("/", response_model=schemas.Manager)
+@router.post("/", response_model=schemas.ManagerSchema)
 async def create_manager(manager: schemas.ManagerCreate, db: Session = Depends(get_db)):
     return create_manager_service(manager, db)
 
 # Route GET để lấy thông tin Manager
-@router.get("/{manager_id}", response_model=schemas.Manager)
+@router.get("/{manager_id}", response_model=schemas.ManagerSchema)
 async def get_manager(manager_id: int, db: Session = Depends(get_db)):
     return get_manager_service(manager_id, db)
 
 # Route PUT để cập nhật thông tin Manager
-@router.put("/{manager_id}", response_model=schemas.Manager)
+@router.put("/{manager_id}", response_model=schemas.ManagerSchema)
 async def update_manager(manager_id: int, manager: schemas.ManagerCreate, db: Session = Depends(get_db)):
     return update_manager_service(manager_id, manager, db)
 
